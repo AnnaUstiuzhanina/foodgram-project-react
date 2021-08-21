@@ -6,13 +6,12 @@ from users.models import User
 class Recipe(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
-    image = models.ImageField(upload_to = 'recipe_images')
+    image = models.ImageField(upload_to='recipe_images')
     text = models.CharField(max_length=200)
-    # ingredients = models.ManyToManyField('Ingredient')
     tags = models.ManyToManyField('Tag')
-    cooking_time = models.PositiveSmallIntegerField(validators=[MinValueValidator(1)])
-    # is_favorited = models.BooleanField(default=False)
-    # is_in_shopping_cart = models.BooleanField(default=False)
+    cooking_time = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1)]
+    )
 
 
 class Ingredient(models.Model):
@@ -21,9 +20,15 @@ class Ingredient(models.Model):
 
 
 class RecipeIngredient(models.Model):
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='ingredients')
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='ingredients'
+    )
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
-    amount = models.PositiveSmallIntegerField(validators=[MinValueValidator(1)])
+    amount = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1)]
+    )
 
 
 class Tag(models.Model):
@@ -33,10 +38,18 @@ class Tag(models.Model):
 
 
 class RecipeFavourite(models.Model):
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='favourite')
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='favourite'
+    )
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
 
 class RecipeShoppingCart(models.Model):
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='shopping_cart')
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='shopping_cart'
+    )
     user = models.ForeignKey(User, on_delete=models.CASCADE)
