@@ -1,7 +1,9 @@
-from rest_framework import serializers
-from .models import Recipe, Ingredient, Tag, RecipeIngredient, RecipeFavourite, RecipeShoppingCart
-from users.serializers import FullUserSerializer
 from drf_extra_fields.fields import Base64ImageField
+from rest_framework import serializers
+from users.serializers import FullUserSerializer
+
+from .models import (Ingredient, Recipe, RecipeFavourite, RecipeIngredient,
+                     RecipeShoppingCart, Tag)
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -72,16 +74,16 @@ class RecipeSerializer(serializers.ModelSerializer):
         ingredients_data = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
 
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
+        # for attr, value in validated_data.items():
+        #     setattr(instance, attr, value)
 
-        instance.save()
+        # instance.save()
 
         RecipeIngredient.objects.filter(recipe=instance).delete()
         self.create_recipe_ingredients(instance, ingredients_data)
         instance.tags.set(tags)
 
-        return instance
+        return super().update(instance, validated_data)
 
     def check_is_favorited(self, obj):
         if self.context['request'].user.is_anonymous:

@@ -1,5 +1,5 @@
-from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.db import models
 
 
 class User(AbstractUser):
@@ -12,15 +12,22 @@ class User(AbstractUser):
         authorized_user = 'authorized_user'
         admin = 'admin'
 
-    email = models.EmailField(max_length=254, unique=True)
+    email = models.EmailField(
+        max_length=254,
+        unique=True,
+        verbose_name='почта пользователя',
+    )
     role = models.CharField(
         max_length=20,
         choices=Role.choices,
-        default=Role.guest
+        default=Role.guest,
+        verbose_name='статус пользователя',
     )
 
     class Meta:
         ordering = ['id']
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
 
     def save(self, *args, **kwargs):
         if not self.username:
@@ -30,11 +37,21 @@ class User(AbstractUser):
 
 class Follow(models.Model):
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="follower"
+        User,
+        on_delete=models.CASCADE,
+        related_name="follower",
+        verbose_name='подписчик',
     )
     following = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="following"
+        User,
+        on_delete=models.CASCADE,
+        related_name="following",
+        verbose_name='автор',
     )
 
     class Meta:
-        unique_together = ('user', 'following',)
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'following'], name='unique subscriptions')
+        ]
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'

@@ -1,7 +1,8 @@
-from rest_framework import serializers
-from .models import User, Follow
-from recipes.models import Recipe
 from djoser.serializers import UserSerializer as DjoserUserSerializer
+from recipes.models import Recipe
+from rest_framework import serializers
+
+from .models import Follow, User
 
 
 class FullUserSerializer(DjoserUserSerializer):
@@ -11,7 +12,6 @@ class FullUserSerializer(DjoserUserSerializer):
     )
 
     def check_is_subscribed(self, obj):
-        print(self.context['request'].user, obj)
         if self.context['request'].user.is_anonymous:
             return False
 
@@ -41,11 +41,9 @@ class RecipeCountFollowUserField(serializers.Field):
 
 class RecipeFollowUserField(serializers.Field):
     def get_attribute(self, instance):
-        print(Recipe.objects.filter(author=instance.following))
         return Recipe.objects.filter(author=instance.following)
 
     def to_representation(self, recipe_list):
-        print(recipe_list)
         recipe_data = []
         for recipe in recipe_list:
             recipe_data.append(

@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -41,7 +42,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'recipes.apps.RecipesConfig',
-    'lists.apps.ListsConfig',
     'users.apps.UsersConfig',
     'rest_framework',
     'rest_framework.authtoken',

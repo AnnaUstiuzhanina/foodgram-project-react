@@ -1,60 +1,60 @@
-from .models import User, Follow
-from .serializers import FollowUsersSerializer, FullUserSerializer
-from rest_framework.decorators import action
-from djoser.views import UserViewSet
 from django.shortcuts import get_object_or_404
+from djoser.views import UserViewSet
+from rest_framework import permissions, status
+from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework import status, permissions
+
+from .models import Follow, User
+from .serializers import FollowUsersSerializer, FullUserSerializer
 
 
 class FollowUserViewSet(UserViewSet):
 
     serializer_class = FullUserSerializer
 
-    def get_serializer_class(self):
-        return super().get_serializer_class()
-
     @action(
         detail=True,
-        methods=['get', 'delete'],
+        methods=['get'],
         permission_classes=[permissions.IsAuthenticated]
     )
     def subscribe(self, serializer, id=None):
         following_user = get_object_or_404(User, id=id)
 
-        if self.request.method == 'GET':
-            if self.request.user == following_user:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
+        if self.request.user == following_user:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
-            try:
-                Follow.objects.get(
-                    user=self.request.user,
-                    following=following_user
-                )
-                return Response(status=status.HTTP_400_BAD_REQUEST)
+        Follow.objects.get_or_create(
+            user=self.request.user,
+            following=following_user
+        )
 
-            except Follow.DoesNotExist:
-                follow = Follow.objects.create(
-                    user=self.request.user,
-                    following=following_user
-                )
-                return Response(FollowUsersSerializer(follow).data)
+        return Response(FollowUsersSerializer(follow).data)
 
-        if self.request.method == 'DELETE':
-            try:
-                Follow.objects.get(
-                    user=self.request.user,
-                    following=following_user
-                ).delete()
-                return Response(status=status.HTTP_204_NO_CONTENT)
-            except Follow.DoesNotExist:
-                return Response(status=status.HTTP_404_NOT_FOUND)
+    @action(
+        detail=True,
+        methods=['delete'],
+        permission_classes=[permissions.IsAuthenticated]
+    )
+    def unsubscribe(self, serializer, id=None):
+        following_user = get_object_or_404(User, id=id)
 
+        deleted_subscriptions = Follow.objects.filter(
+            user=self.request.user,
+            following=following_user
+        ).delete()
 
-class FollowViewSet(UserViewSet):
-    serializer_class = FollowUsersSerializer
-    permission_classes = (permissions.IsAuthenticated)
-    http_method_names = ['get']
+        if deleted_subscriptions > 0:
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def get_queryset(self):
-        return Follow.objects.filter(user=self.request.user)
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    @action(
+        detail=False,
+        methods=['get'],
+        permission_classes=[permissions.IsAuthenticated]
+    )
+    def subscriptions(self, serializer):
+        follow_list = Follow.objects.filter(user=self.request.user)
+        page = self.paginate_queryset(follow_list)
+        serializer = FollowUsersSerializer(page, many=True)
+        return self.get_paginated_response(serializer.data)
