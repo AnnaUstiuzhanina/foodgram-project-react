@@ -12,30 +12,20 @@ class FollowUserViewSet(UserViewSet):
 
     serializer_class = FullUserSerializer
 
-    @action(
-        detail=True,
-        methods=['get'],
-        permission_classes=[permissions.IsAuthenticated]
-    )
-    def subscribe(self, serializer, id=None):
+    def user_subscribe(self, serializer, id=None):
         following_user = get_object_or_404(User, id=id)
 
         if self.request.user == following_user:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        Follow.objects.get_or_create(
+        follow = Follow.objects.get_or_create(
             user=self.request.user,
             following=following_user
         )
 
-        return Response(FollowUsersSerializer(follow).data)
+        return Response(FollowUsersSerializer(follow[0]).data)
 
-    @action(
-        detail=True,
-        methods=['delete'],
-        permission_classes=[permissions.IsAuthenticated]
-    )
-    def unsubscribe(self, serializer, id=None):
+    def user_unsubscribe(self, serializer, id=None):
         following_user = get_object_or_404(User, id=id)
 
         deleted_subscriptions = Follow.objects.filter(
@@ -43,10 +33,21 @@ class FollowUserViewSet(UserViewSet):
             following=following_user
         ).delete()
 
-        if deleted_subscriptions > 0:
+        if deleted_subscriptions[0] > 0:
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         return Response(status=status.HTTP_404_NOT_FOUND)
+
+    @action(
+        detail=True,
+        methods=['get', 'delete'],
+        permission_classes=[permissions.IsAuthenticated]
+    )
+    def subscribe(self, serializer, id=None):
+        if self.request.method == 'DELETE':
+            return self.user_unsubscribe(serializer, id)
+        else:
+            return self.user_subscribe(serializer, id)
 
     @action(
         detail=False,

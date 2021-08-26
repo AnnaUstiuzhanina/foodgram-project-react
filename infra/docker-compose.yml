@@ -12,6 +12,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ../frontend/:/app/result_build/
+
   db:
     image: postgres:12.4
     volumes: 
@@ -19,12 +20,9 @@ services:
     container_name: db
     env_file:  
       - ../backend/foodgram/.env
-    networks:
-      - backend_network
     expose:
       - "5432"
-    ports:
-      - 5432:5432
+
   backend:
     build: ../backend/foodgram/.
     volumes: 
@@ -35,8 +33,6 @@ services:
       - db 
     env_file: 
       - ../backend/foodgram/.env
-    networks:
-      - backend_network
     links:
       - db:db
 
@@ -54,10 +50,6 @@ services:
     depends_on:
       - backend
       - frontend
-    
-    networks:
-      - backend_network
-
 
 networks:
   backend_network:

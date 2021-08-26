@@ -1,7 +1,7 @@
 from django.db.models import Sum
 from django.http import HttpResponse
-from rest_framework import permissions, status, viewsets
-from rest_framework.decorators import action
+from django.shortcuts import get_object_or_404
+from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -26,46 +26,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
 
-    @action(
-        detail=True,
-        methods=['get', 'delete'],
-        permission_classes=[permissions.IsAuthenticated]
-    )
-    def favorite(self, request, pk=None):
-
-        try:
-            recipe = Recipe.objects.get(id=pk)
-            serializer = self.get_serializer(recipe)
-        except Recipe.DoesNotExist:
-            return Response(
-                {'error': 'Recipe does not exist'},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        if request.method == 'GET':
-            try:
-                RecipeFavourite.objects.get(user=request.user, recipe=recipe)
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-            except RecipeFavourite.DoesNotExist:
-                RecipeFavourite.objects.create(
-                    user=request.user,
-                    recipe=recipe
-                )
-                return Response(serializer.data)
-
-        elif request.method == 'DELETE':
-            try:
-                RecipeFavourite.objects.get(user=request.user, recipe=recipe)
-                RecipeFavourite.objects.filter(
-                    user=request.user,
-                    recipe=recipe
-                ).delete()
-                return Response(status=status.HTTP_204_NO_CONTENT)
-            except RecipeFavourite.DoesNotExist:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-  
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
 
 class FavouriteViewSet(APIView):
 
@@ -74,7 +37,7 @@ class FavouriteViewSet(APIView):
             recipe = Recipe.objects.get(id=pk)
             serializer = RecipeSerializer(
                 recipe,
-                context = {'request': request},
+                context={'request': request},
             )
         except Recipe.DoesNotExist:
             return Response(
@@ -93,27 +56,15 @@ class FavouriteViewSet(APIView):
             return Response(serializer.data)
 
     def delete(self, request, pk=None):
-        try:
-            recipe = Recipe.objects.get(id=pk)
-            serializer = RecipeSerializer(
-                recipe,
-                context = {'request': request},
-            )
-        except Recipe.DoesNotExist:
-            return Response(
-                {'error': 'Recipe does not exist'},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-            
-        try:
-            RecipeFavourite.objects.get(user=request.user, recipe=recipe)
-            RecipeFavourite.objects.filter(
+        recipe = get_object_or_404(Recipe, id=pk)
+        deleted_recipe_favouritie = RecipeFavourite.objects.filter(
                 user=request.user,
                 recipe=recipe
             ).delete()
+        if deleted_recipe_favouritie[0] > 0:
             return Response(status=status.HTTP_204_NO_CONTENT)
-        except RecipeFavourite.DoesNotExist:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(status=status.HTTP_404_NOT_FOUND)
 
 
 class ShoppingCartViewSet(APIView):
@@ -123,7 +74,7 @@ class ShoppingCartViewSet(APIView):
             recipe = Recipe.objects.get(id=pk)
             serializer = RecipeSerializer(
                 recipe,
-                context = {'request': request},
+                context={'request': request},
             )
         except Recipe.DoesNotExist:
             return Response(
@@ -145,27 +96,18 @@ class ShoppingCartViewSet(APIView):
             return Response(serializer.data)
 
     def delete(self, request, pk=None):
-        try:
-            recipe = Recipe.objects.get(id=pk)
-        except Recipe.DoesNotExist:
-            return Response(
-                {'error': 'Recipe does not exist'},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        recipe = get_object_or_404(Recipe, id=pk)
 
-        try:
-            RecipeShoppingCart.objects.get(
-                user=request.user,
-                recipe=recipe
-            )
-            RecipeShoppingCart.objects.filter(
+        deleted_from_shopping_cart = RecipeShoppingCart.objects.filter(
                 user=request.user,
                 recipe=recipe
             ).delete()
+
+        if deleted_from_shopping_cart[0] > 0:
             return Response(status=status.HTTP_204_NO_CONTENT)
-        except RecipeShoppingCart.DoesNotExist:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
- 
+
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
 
 class DonwloadShoppingCartViewSet(APIView):
 
@@ -175,7 +117,7 @@ class DonwloadShoppingCartViewSet(APIView):
             'ingredient__name',
             'ingredient__measurement_unit'
         ).annotate(count=Sum('amount')).filter(recipe__id__in=shopping_cart_relations)
-            
+
         file_content = ''
         file_content = '\n'.join([f"{ingredient['ingredient__name']} {ingredient['count']} {ingredient['ingredient__measurement_unit']}" for ingredient in ingredients])
 

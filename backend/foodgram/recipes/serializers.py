@@ -73,12 +73,6 @@ class RecipeSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         ingredients_data = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
-
-        # for attr, value in validated_data.items():
-        #     setattr(instance, attr, value)
-
-        # instance.save()
-
         RecipeIngredient.objects.filter(recipe=instance).delete()
         self.create_recipe_ingredients(instance, ingredients_data)
         instance.tags.set(tags)
@@ -86,26 +80,24 @@ class RecipeSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
     def check_is_favorited(self, obj):
-        if self.context['request'].user.is_anonymous:
+        current_user = self.context['request'].user
+        if current_user.is_anonymous:
             return False
 
-        if RecipeFavourite.objects.filter(
+        return RecipeFavourite.objects.filter(
             recipe=obj,
-            user=self.context['request'].user
-        ):
-            return True
-        return False
+            user=current_user
+        ).exists()
 
     def check_is_in_shopping_cart(self, obj):
-        if self.context['request'].user.is_anonymous:
+        current_user = self.context['request'].user
+        if current_user.is_anonymous:
             return False
 
-        if RecipeShoppingCart.objects.filter(
+        return RecipeShoppingCart.objects.filter(
             recipe=obj,
-            user=self.context['request'].user
-        ):
-            return True
-        return False
+            user=current_user
+        ).exists()
 
     class Meta:
         fields = (
